@@ -1,0 +1,9 @@
+a = 1
+b = 1
+while True: 
+	c = b
+	b += a
+	a = c
+	if len(str(b)) >= 1000: 
+		break
+print(b)
