@@ -14,7 +14,6 @@
 #define ld long double
 #define pb push_back
 #define pc putchar
-#define vi vector<int> 
 #define lowbit(x) (x & -x)
 #define maxbuf 2000020
 #define gc() ((p1 == p2 && (p2 = (p1 = buffer) + fread(buffer, 1, maxbuf, stdin), p1 == p2)) ? EOF : *p1++)
@@ -72,18 +71,40 @@ template <class T> void write(T x, char sep = '\n'){
 #define M 
 #define ll long long int 
 
-vector<vi> carda, cardb;
+#define vb vector<bool> 
+#define vi vector<int> 
+#define hand vector<vb>
+#define max_value 14
+#define min_value 2
+#define max_suit  4
+#define min_suit  1
+#define for_value(x) per(x, max_value, min_value)
+#define for_suit(x)  rep(x, min_suit, max_suit)
+#define rank RANK
+
+hand carda, cardb;
+
+vi operator + (vi a, vi b) {
+    a.insert(a.end(), b.begin(), b.end());
+    return a;
+}
+
+bool operator < (vi a, vi b) {
+    int l = min(a.size(), b.size());
+    srep(i, 0, l) if (a[i] != b[i]) return a[i] < b[i]; 
+    return a.size() < b.size();
+}
 
 int value(char ch) {
 	if (isdigit(ch)) return ch - '0';
 	switch(ch){
-		case 'A': return 1;
 		case 'T': return 10;
 		case 'J': return 11;
 		case 'Q': return 12;
 		case 'K': return 13;
+		case 'A': return 14;
 	}
-	assert(false); 
+	assert(false);
 }
 
 int suit(char ch) {
@@ -96,87 +117,163 @@ int suit(char ch) {
 	assert(false);
 }
 
-vi RoyalFlush(vector<vi>& card) {
-	rep(s, 1, 4) if (card[s][10] && card[s][11] && card[s][12] && card[s][13] && card[s][1]) {
-		card[s][10] = card[s][11] = card[s][12] = card[s][13] = card[s][1] = 0;
-		return vi{10}; 
-	} return vi{-1};
+int rank(string res){
+    if (res == "StraightFlush")     return 9;
+    if (res == "FourofaKind")	    return 8;
+    if (res == "FullHouse")	        return 7;
+    if (res == "Flush")	            return 6;
+    if (res == "Straight")	        return 5;
+    if (res == "ThreeofaKind")	    return 4;
+    if (res == "TwoPairs")	        return 3;
+    if (res == "OnePair")	        return 2;
+    if (res == "HighCard")	        return 1;
+    assert(false);
 }
 
-int StraightFlush(vector<vi>& card) {	
-	rep(s, 1, 4) rep(v, 1, 9) {
-		rep(i, 0, 4) if (!card[s][v + i]) goto fail1; 
-		rep(i, 0, 4) card[s][v + i] = 0;
-		return v;
-		fail1:; 
-	} return -1;
+vi _SameValueCheck(hand& card, int num) {
+    for_value(v){ 
+	    int ct = 0;
+	    for_suit(s) ct += card[s][v];
+	    if (ct >= num) {  
+	        for_suit(s) {
+	            if (!ct) break;
+	            if (card[s][v]) card[s][v] = 0, ct--;
+	        }
+	        return vi{v};
+	    }
+	}
+	return vi{0};
 }
 
-int FourofaKind(vector<vi>& card) {
-	rep(v, 1, 13) {
-		rep(s, 1, 4) if (!card[s][v]) goto fail2;  
-		rep(s, 1, 4) card[s][v] = 0;
-		return v;
-		fail2:;
-	} return -1;
+vi _SameSuitCheck(hand& card, int s, int num=5) { 
+    vi res = {};
+    int ct = 0;
+    for_value(v) ct += card[s][v];
+    if (ct == num) {
+        for_value(v) if (card[s][v]) res.pb(v), card[s][v] = 0;
+        return res;
+    }
+    return vi{0};
 }
 
-int FullHouse(vector<vi>& card) {
-	
+vi _ConsecutiveCheck(hand& card, int first_val, bool same_suit, int len=5){
+    if (first_val > max_value-len+1) assert(false);
+    vi res = {};
+    if (same_suit) {    
+        for_suit(s) {
+            srep(i, 0, len) if (!card[s][first_val + i]) goto fail2;
+            srep(i, 0, len) card[s][first_val + i] = 0;
+            per(i, len-1, 0) res.pb(first_val + i); return res;
+            fail2:;
+        }
+        return vi{0};
+    }
+    else {
+        srep(i, 0, len) {
+            for_suit(s) if (card[s][first_val + i]) goto cont1;
+            return vi{0};
+            cont1:;
+        }
+        srep(i, 0, len) for_suit(s) if (card[s][first_val + i]) card[s][first_val + i] = 0;
+        per(i, len-1, 0) res.pb(first_val + i); return res;
+    }
 }
 
-bool Flush(vector<vi>& card) {
-
+vi StraightFlush(hand& card) {	
+	per(v, 10, 2) { vi d = _ConsecutiveCheck(card, v, true); if (d[0]) return d; } return vi{0};
 }
 
-bool Straight(vector<vi>& card) {
-
+vi FourofaKind(hand& card) {
+    return _SameValueCheck(card, 4);
 }
 
-bool ThreeofaKind(vector<vi>& card) {
-	
+vi ThreeofaKind(hand& card) {
+	return _SameValueCheck(card, 3);
 }
 
-bool TwoPairs(vector<vi>& card) {
-	
+vi OnePair(hand& card) {
+	return _SameValueCheck(card, 2);
 }
 
-bool OnePair(vector<vi>& card) {
-	
+vi TwoPairs(hand& card) {
+    hand _card = card;
+	vi v1 = OnePair(card); if (!v1[0]) return vi{0};
+	vi v2 = OnePair(card); if (!v2[0]) { card = _card; return vi{0}; }
+    return v1 + v2;
 }
 
-bool HighCard(vector<vi>& card) {
-	
+vi FullHouse(hand& card) {
+	hand _card = card;
+	vi v1 = ThreeofaKind(card); if (!v1[0]) return vi{0};
+	vi v2 = OnePair(card); if (!v2[0]) { card = _card; return vi{0}; }
+    return v1 + v2;
 }
 
-bool empty(vector<vi>& card) {
-	rep(s, 1, 4) if (!card[s].empty()) return false; return true;
+vi Flush(hand& card) {
+    for_suit(s) { vi d = _SameSuitCheck(card, s); if (d[0]) return d; } return vi{0};
 }
 
-int comp(vector<vi>& carda, vector<vi>& cardb) {
-	
+vi Straight(hand& card) {
+    per(v, 10, 2) { vi d = _ConsecutiveCheck(card, v, false); if (d[0]) return d; } return vi{0};
 }
 
-void init(vector<vi>& carda, vector<vi>& cardb) {
-	carda.clear(),   cardb.clear();
-	carda.resize(5), cardb.resize(5);
-	for (auto it: carda) it.resize(14);
-	for (auto it: cardb) it.resize(14);
+vi HighCard(hand& card) {
+	for_value(v) for_suit(s) if (card[s][v]) {card[s][v] = 0; return vi{v};} return vi{0};
+}
+
+bool empty(hand& card) {
+	for_suit(s) if (!card[s].empty()) return false; return true;
+}
+
+vi get_rank(hand& card){
+    vi d;
+    d = StraightFlush(card);    if (d[0]) return vi{rank("StraightFlush")} + d;
+    d = FourofaKind(card);      if (d[0]) return vi{rank("FourofaKind")} + d;
+    d = FullHouse(card);        if (d[0]) return vi{rank("FullHouse")} + d;
+    d = Flush(card);            if (d[0]) return vi{rank("Flush")} + d;
+    d = Straight(card);         if (d[0]) return vi{rank("Straight")} + d;
+    d = ThreeofaKind(card);     if (d[0]) return vi{rank("ThreeofaKind")} + d;
+    d = TwoPairs(card);         if (d[0]) return vi{rank("TwoPairs")} + d;
+    d = OnePair(card);          if (d[0]) return vi{rank("OnePair")} + d;
+    d = HighCard(card);         if (d[0]) return vi{rank("HighCard")} + d;
+    assert(false);
+    return vi{0};
+}
+
+int comp(hand& carda, hand& cardb) {
+    vi da, db;
+    do{
+        da = get_rank(carda), db = get_rank(cardb);
+        if (da < db) return -1;
+        if (da > db) return 1;
+    }
+    while (!empty(carda) && !empty(cardb));
+    return 0;
+}
+
+void init(hand& carda, hand& cardb) {
+	carda.clear();
+	cardb.clear();
+	carda.resize(max_suit+1);
+	cardb.resize(max_suit+1);
+	for (auto& it: carda) it.resize(max_value+1);
+	for (auto& it: cardb) it.resize(max_value+1);
 }
 
 void work(){
+    freopen("p054_poker.txt", "r", stdin);
 	int cnt = 0;
 	rep(i, 1, 1000) {
-		vector<vi> carda, cardb;
+		hand carda, cardb;
 		init(carda, cardb);
 		char s[5];
 		rep(j, 1, 5) {
 			reads(s + 1);
-			carda[suit(s[2])][value(s[1])]++;
+			carda[suit(s[2])][value(s[1])] = 1;
 		}
 		rep(j, 1, 5) {
 			reads(s + 1);
-			cardb[suit(s[2])][value(s[1])]++;
+			cardb[suit(s[2])][value(s[1])] = 1;
 		}
 		if (comp(carda, cardb) > 0) cnt++;
 	}
@@ -184,4 +281,3 @@ void work(){
 }
 
 int main(){ work(); return 0; }
-
